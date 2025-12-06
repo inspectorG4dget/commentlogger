@@ -4,9 +4,6 @@ import re
 import sys
 from functools import wraps
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
-logger = logging.getLogger(__name__)
-
 
 # ============================================================================
 # DEVELOPMENT: Decorator with sys.settrace for debugging
