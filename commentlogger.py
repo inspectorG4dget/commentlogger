@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 # DEVELOPMENT: Decorator with sys.settrace for debugging
 # ============================================================================
 
-def logComments(myLogger):
+def logcomments(myLogger):
     def decoDebug(func):
         """Development decorator that traces comment execution."""
         source = inspect.getsource(func)
@@ -60,3 +60,6 @@ def logComments(myLogger):
 
         return wrapper
     return decoDebug
+
+
+logComments = log_comments = logcomments  # supporting whatever code style a dev might want
