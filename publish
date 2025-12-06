@@ -1,0 +1,12 @@
+PROJ=commentlogger
+rm -rf src build dist
+mkdir -p src/"$PROJ"
+
+for fname in __init__.py commentlogger.py ; do
+    cp "$fname" src/"$PROJ"/
+done
+
+python -m build
+python -m twine upload dist/*
+
+rm -rf src build dist
