@@ -1,3 +1,4 @@
+import argparse
 import ast
 import logging
 import re
@@ -12,15 +13,24 @@ for k,v in logging._nameToLevel.items():
 LOGLEVELS = sorted(LOGLEVELS.keys())
 
 
+def getArgs():
+    """
+    Get the command line arguments
+    :return: parsed Namespace
+    """
+    args = argparse.ArgumentParser()
+    args.add_argument('-i', dest='infilepath', type=str, required=True, help='input filepath')
+    args.add_argument('-o', dest='outfilepath', type=str, required=True, help='output filepath')
+
+    return args.parse_args()
+
+
 def parseComment(comment):
     """
     Parse a comment to extract log level and message.
 
-    Args:
-        comment: The comment text to parse
-
-    Returns:
-        A tuple of (logLevel, logMessage)
+    :param comment: The comment text to parse
+    :returns: A tuple of (logLevel, logMessage)
     """
     level, _, logline = comment.partition(":")
     level = level.strip()
@@ -32,7 +42,6 @@ def parseComment(comment):
     else:
         try:
             level = next(L for L in LOGLEVELS if L.startswith(level.upper()))
-            print(f"Discovered {level = }")  ##
         except StopIteration:
             level = "INFO"
             logline = comment
@@ -45,13 +54,12 @@ def shouldSkipDecoratorLine(line, sourceCode):
     Determine if a decorator line should be skipped based on whether it's
     a commentlogger import (name-agnostic).
 
-    Args:
-        line: The line of code to check
-        sourceCode: The full source code (needed to parse imports)
+    :param line: The line of code to check
+    :param sourceCode: The full source code (needed to parse imports)
 
-    Returns:
-        True if this decorator should be skipped, False otherwise
+    :return: True if this decorator should be skipped, False otherwise
     """
+
     stripped = line.strip()
     if not stripped.startswith('@'):
         return False
@@ -80,7 +88,7 @@ def shouldSkipDecoratorLine(line, sourceCode):
                         importedName = alias.asname if alias.asname else 'commentlogger'
                         if baseName == importedName:
                             return True
-    except:
+    except Exception:
         pass
 
     return False
@@ -90,12 +98,10 @@ def extractLoggerInfo(sourceCode):
     """
     Extract logger name and decorated functions using AST (name-agnostic).
 
-    Args:
-        sourceCode: The Python source code to analyze
-
-    Returns:
-        A tuple of (loggerName, decoratedFunctions)
+    :param sourceCode: str. The Python source code to analyze
+    :return: A tuple of (loggerName, decoratedFunctions)
     """
+
     try:
         tree = ast.parse(sourceCode)
 
@@ -145,7 +151,6 @@ def extractLoggerInfo(sourceCode):
 
         return loggerName, decoratedFunctions
     except Exception as e:
-        print(f"⚠ Warning: Could not parse AST: {e}")
         return None, set()
 
 
@@ -153,13 +158,12 @@ def injectLogging(infilepath, outfilepath):
     """
     Inject logging statements before lines with comments in a Python file.
 
-    Args:
-        infilepath: Path to the input Python file
-        outfilepath: Path to the output file. If None, prints to stdout.
+    :param infilepath: str. Path to the input Python file
+    :param outfilepath: str. Path to the output file
 
-    Returns:
-        The modified source code with logging injected
+    :returns: None
     """
+
     with open(infilepath, 'r') as f:
         sourceCode = f.read()
 
@@ -225,21 +229,14 @@ def injectLogging(infilepath, outfilepath):
         newLines.append(line)
         i += 1
 
-    result = '\n'.join(newLines)
-
-    if outfilepath:
-        with open(outfilepath, 'w') as f:
-            f.write(result)
-        print(f"✓ Logging injected successfully!")
-        print(f"  Input:  {infilepath}")
-        print(f"  Output: {outfilepath}")
-        if decoratedFunctions:
-            print(f"  Processed functions: {', '.join(sorted(decoratedFunctions))}")
-    else:
-        print(result)
-
-    return result
+    with open(outfilepath, 'w') as f:
+        f.write('\n'.join(newLines))
 
 
 if __name__ == "__main__":
-    injectLogging('test.py', 'test_output.py')
+    print('starting')
+
+    args = getArgs()
+    injectLogging(args.infilepath, args.outfilepath)
+
+    print('done')
