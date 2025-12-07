@@ -5,9 +5,8 @@ import sys
 from functools import wraps
 
 
-# ============================================================================
-# DEVELOPMENT: Decorator with sys.settrace for debugging
-# ============================================================================
+LOGLEVELS = logging._nameToLevel
+
 
 def logcomments(myLogger):
     def decoDebug(func):
@@ -20,16 +19,16 @@ def logcomments(myLogger):
         for i, line in enumerate(source_lines):
             match = re.search(r'#\s*(.*)', line)
             if match:
-                actual_line_num = start_line + i
-                comment_lines[actual_line_num] = match.group(1).strip()
+                comment_lines[start_line + i] = match.group(1).strip()
 
         func_code = func.__code__
+        func_filename = func_code.co_filename
 
         @wraps(func)
         def wrapper(*args, **kwargs):
             logged_lines = set()
 
-            def traceLines(frame, event, arg):
+            def traceLines(frame, event, _arg):
                 if frame.f_code is not func_code:
                     return None
 
@@ -40,8 +39,31 @@ def logcomments(myLogger):
                     line_num = frame.f_lineno
 
                     if line_num in comment_lines and line_num not in logged_lines:
-                        myLogger.info(f"[{func.__name__}:{line_num}] {comment_lines[line_num]}")
-                        logged_lines.add(line_num)
+                        comment = comment_lines[line_num]
+                        level, _, logline = comment.partition(":")
+                        level = level.strip()
+                        logline = logline.strip()
+
+                        if not(level and level.upper() in LOGLEVELS):
+                            level = "info"
+                            logline = comment
+
+                        comment_lines[line_num] = logline
+
+                        if myLogger.isEnabledFor(getattr(logging, level.upper())):
+                            record = myLogger.makeRecord(myLogger.name,
+                                                         logging.INFO,
+                                                         func_filename,  # filename of the logging function
+                                                         line_num,
+                                                         comment_lines[line_num],
+                                                         args = (),
+                                                         exc_info = None,
+                                                         func = func.__name__,  # name of the logging function
+                                                         extra = None,
+                                                         sinfo = None,
+                                                         )
+                            myLogger.handle(record)
+                            logged_lines.add(line_num)
 
                 return traceLines
 
