@@ -5,41 +5,47 @@ import sys
 from functools import wraps
 
 
-LOGLEVELS = sorted(logging._nameToLevel.keys())
+LOGLEVELS = {**logging._nameToLevel}
+
+for k, v in logging._nameToLevel.items():
+    if any(_k.startswith(k) and v==_v for _k, _v in logging._nameToLevel.items() if k != _k):  # noqa E225
+        LOGLEVELS.pop(k)
+
+LOGLEVELS = sorted(LOGLEVELS.keys())
 
 
 def logcomments(myLogger):
     def decoDebug(func):
         """Development decorator that traces comment execution."""
         source = inspect.getsource(func)
-        source_lines = source.split('\n')
-        start_line = inspect.getsourcelines(func)[1]
+        sourceLines = source.split('\n')
+        startLine = inspect.getsourcelines(func)[1]
 
-        comment_lines = {}
-        for i, line in enumerate(source_lines):
+        commentLines = {}
+        for i, line in enumerate(sourceLines):
             match = re.search(r'#\s*(.*)', line)
             if match:
-                comment_lines[start_line + i] = match.group(1).strip()
+                commentLines[startLine + i] = match.group(1).strip()
 
-        func_code = func.__code__
-        func_filename = func_code.co_filename
+        funcCode = func.__code__
+        funcFilename = funcCode.co_filename
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            logged_lines = set()
+            loggedLines = set()
 
             def traceLines(frame, event, _arg):
-                if frame.f_code is not func_code:
+                if frame.f_code is not funcCode:
                     return None
 
                 if event == 'call':
                     return traceLines
 
                 if event == 'line':
-                    line_num = frame.f_lineno
+                    lineNum = frame.f_lineno
 
-                    if line_num in comment_lines and line_num not in logged_lines:
-                        comment = comment_lines[line_num]
+                    if lineNum in commentLines and lineNum not in loggedLines:
+                        comment = commentLines[lineNum]
                         level, _, logline = comment.partition(":")
                         level = level.strip()
                         logline = logline.strip()
@@ -55,14 +61,14 @@ def logcomments(myLogger):
                                 level = "INFO"
                                 logline = comment
 
-                        comment_lines[line_num] = logline
+                        commentLines[lineNum] = logline
 
                         if myLogger.isEnabledFor(getattr(logging, level.upper())):
                             record = myLogger.makeRecord(myLogger.name,
                                                          getattr(logging, level),
-                                                         func_filename,  # filename of the logging function
-                                                         line_num,
-                                                         comment_lines[line_num],
+                                                         funcFilename,  # filename of the logging function
+                                                         lineNum,
+                                                         commentLines[lineNum],
                                                          args = (),
                                                          exc_info = None,
                                                          func = func.__name__,  # name of the logging function
@@ -70,17 +76,17 @@ def logcomments(myLogger):
                                                          sinfo = None,
                                                          )
                             myLogger.handle(record)
-                            logged_lines.add(line_num)
+                            loggedLines.add(lineNum)
 
                 return traceLines
 
-            old_trace = sys.gettrace()
+            oldTrace = sys.gettrace()
             sys.settrace(traceLines)
 
             try:
                 result = func(*args, **kwargs)
             finally:
-                sys.settrace(old_trace)
+                sys.settrace(oldTrace)
 
             return result
 
