@@ -1,0 +1,9 @@
+flake8-commas==4.0.0
+flake8-commas==4.0.0
+flake8-print==5.0.0
+flake8-print==5.0.0
+flake8-todo==0.7
+flake8-todo==0.7
+flake8==7.3.0
+pep8-naming==0.15.1
+pydoclint==0.7.3
