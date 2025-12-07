@@ -191,23 +191,17 @@ def injectLogging(infilepath, outfilepath):
     except:
         lineToFunction = {}
 
-    i = 0
-    while i < len(lines):
-        line = lines[i]
+    for i, line in enumerate(lines):
 
         if not addedImports and not importsLogging:
             stripped = line.strip()
-            if (not stripped.startswith('#') and
-                    not stripped.startswith('"""') and
-                    not stripped.startswith("'''") and
-                    stripped != '' and
-                    i > 0):
+            starts = ("#", "'''", '"""')
+            if i and stripped and not any(stripped.startswith(s) for s in starts):
                 newLines.append('import logging')
                 newLines.append('')
                 addedImports = True
 
         if shouldSkipDecoratorLine(line, sourceCode):
-            i += 1
             continue
 
         commentMatch = re.search(r'#\s*(.*)', line)
@@ -227,16 +221,15 @@ def injectLogging(infilepath, outfilepath):
                 newLines.append(logStatement)
 
         newLines.append(line)
-        i += 1
 
     with open(outfilepath, 'w') as f:
         f.write('\n'.join(newLines))
 
 
 if __name__ == "__main__":
-    print('starting')
+    print('starting')  # noqa T201
 
     args = getArgs()
     injectLogging(args.infilepath, args.outfilepath)
 
-    print('done')
+    print('done')  # noqa T201
