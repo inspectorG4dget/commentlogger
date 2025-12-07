@@ -25,8 +25,10 @@ Writing logging statements while developing can make code harder to read and und
 - 🎯 **Zero code clutter** - Your comments become your logs
 - 🔍 **Line-by-line execution tracing** - See exactly what's running and when
 - 🎨 **Flexible logger support** - Use your own logger or the default
+- 📊 **Log level support** - Specify log levels directly in comments (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 - 🚀 **Development-focused** - Designed for debugging, not production (see Performance note)
 - 📝 **Clean syntax** - Simple decorator, nothing more
+- 🔄 **Production converter** - Tool to convert development code to production-ready logging
 
 ## Quick Start
 
@@ -103,6 +105,58 @@ def my_function():
     return x
 ```
 
+### Log Levels in Comments
+
+You can specify log levels directly in your comments using the format `# LEVEL: message`:
+
+```python
+import logging
+from commentlogger import logcomments
+
+logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
+
+@logcomments(logger)
+def process_transaction(amount):
+    # DEBUG: Starting transaction processing
+    validated = validate_amount(amount)
+    
+    # INFO: Transaction validated successfully
+    result = apply_transaction(validated)
+    
+    # WARNING: High value transaction detected
+    if result > 10000:
+        alert_compliance()
+    
+    # ERROR: Transaction amount is negative
+    if result < 0:
+        rollback()
+        
+    # This is a regular info message (no level specified)
+    return result
+```
+
+**Output:**
+```
+DEBUG: Starting transaction processing
+INFO: Transaction validated successfully
+WARNING: High value transaction detected
+INFO: This is a regular info message
+```
+
+**Supported log levels:**
+- `DEBUG` (or `D`, `DEB`, `DEBU`, `debu`)
+- `INFO` (or `I`, `INF`, `inf`)
+- `WARNING` (or `W`, `WARN`, `WA`, `wa`)
+- `ERROR` (or `E`, `ERR`, `ER`, `er`)
+- `CRITICAL` (or `C`, `CRIT`, `CRI`, `cri`)
+
+**Shorthand matching:**
+- Comments are case-insensitive for level matching
+- Prefix matches work: `# warn: message` → `WARNING` level
+- If multiple levels share a prefix, the lexicographically first is used
+- If no level is specified or recognized, defaults to `INFO`
+
 ### Multiple Naming Styles
 
 The package supports different naming conventions:
@@ -122,13 +176,16 @@ from commentlogger import log_comments # snake_case alternative
 commentlogger uses Python's `sys.settrace()` mechanism to intercept line-by-line execution. When a decorated function runs:
 
 1. The decorator extracts all comments from the function's source code
-1. As each line executes, it checks if that line has a comment
-1. If a comment exists, it logs the comment text before executing the line
-1. If the comment specifies a log level, use that loglevel  
-   Eg: `# warning: [message]` will log `message` as a warning. This will work only if `setLevel` allows for warnings to be emitted.  
-   Shorthand also works: `# w: [message]` or `# warn: [message]` or `# wa: [message]` will behave identically.  
-   Caveat: if two loglevels share a shorthand/prefix, the lexicographically first level will be used.
-1. Execution continues normally
+2. As each line executes, it checks if that line has a comment
+3. If a comment exists, it parses the log level (if specified) and message
+4. It logs the message at the appropriate level before executing the line
+5. Execution continues normally
+
+**Log level parsing:**
+- Format: `# LEVEL: message` (e.g., `# DEBUG: Entering function`)
+- If no level is specified (e.g., `# message`), defaults to `INFO`
+- Supports shorthand: `# W: message` matches `WARNING`
+- Case-insensitive matching
 
 ## Performance Considerations
 
@@ -144,10 +201,64 @@ commentlogger uses Python's `sys.settrace()` mechanism to intercept line-by-line
 
 ## Transition to Production
 
-When you're ready to move to production, you have the following options:
+When you're ready to move to production, you have several options:
 
-1. **Remove the decorator** - Simplest approach
-1. **Convert to explicit logging** - Replace comments with `logger.info()` statements
+### 1. Remove the decorator (simplest)
+Just remove `@logcomments(logger)` from your functions.
+
+### 2. Convert to explicit logging (recommended)
+
+Use the included `inject_logging.py` tool to automatically convert your commented code to production-ready logging:
+
+```bash
+python prod.py -i mycode.py -o mycode_production.py
+```
+
+**Input code:**
+```python
+import logging
+
+from commentlogger import logcomments
+
+logger = logging.getLogger(__name__)
+
+@logcomments(logger)
+def process_data(x):
+    x = validate(x)  # DEBUG: Starting data processing
+    result = transform(x)  # INFO: Data validated
+    
+    if len(result) > 1000:  # WARNING: Large dataset detected
+        optimize()
+    
+    return result
+```
+
+**Output code:**
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+
+def process_data(x):
+    logger.debug("Starting data processing")
+    x = validate(x)  # DEBUG: Starting data processing
+    
+    logger.info("Data validated")
+    result = transform(x)  # INFO: Data validated
+    
+    logger.warning("Large dataset detected")
+    if len(result) > 1000:  # WARNING: Large dataset detected
+        optimize()
+    
+    return result
+```
+
+The tool:
+- Automatically detects your logger variable name from the decorator
+- Preserves log levels from comments
+- Removes the `@logcomments` decorator
+- Only processes decorated functions
+- Works with any import alias (e.g., `from commentlogger import logcomments as trace`)
 
 ## Philosophy
 
@@ -157,6 +268,7 @@ commentlogger lets you:
 - Write cleaner development code
 - Maintain readability
 - Debug with detailed execution traces
+- Specify appropriate log levels inline
 - Transition to production logging when ready
 
 ## Requirements
@@ -183,4 +295,4 @@ Created with ❤️ for developers who value clean, readable code.
 
 ---
 
-**Note**: Remember that commentlogger is a development tool. For production logging, use explicit `logger` calls or generate them programmatically from your development code.
+**Note**: Remember that commentlogger is a development tool. For production logging, use explicit `logger` calls or generate them programmatically from your development code using the included conversion tool.
