@@ -7,11 +7,12 @@ from functools import wraps
 
 LOGLEVELS = {**logging._nameToLevel}
 
-for k,v in logging._nameToLevel.items():
-    if any(_k.startswith(k) and v==_v for _k,_v in logging._nameToLevel.items() if k != _k):
+for k, v in logging._nameToLevel.items():
+    if any(_k.startswith(k) and v==_v for _k, _v in logging._nameToLevel.items() if k != _k):  # noqa E225
         LOGLEVELS.pop(k)
 
 LOGLEVELS = sorted(LOGLEVELS.keys())
+
 
 def logcomments(myLogger):
     def decoDebug(func):

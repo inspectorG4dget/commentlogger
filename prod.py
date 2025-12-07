@@ -6,8 +6,8 @@ import re
 # Get all available log levels
 LOGLEVELS = {**logging._nameToLevel}
 
-for k,v in logging._nameToLevel.items():
-    if any(_k.startswith(k) and v==_v for _k,_v in logging._nameToLevel.items() if k != _k):
+for k, v in logging._nameToLevel.items():
+    if any(_k.startswith(k) and v==_v for _k, _v in logging._nameToLevel.items() if k != _k):  # noqa E225
         LOGLEVELS.pop(k)
 
 LOGLEVELS = sorted(LOGLEVELS.keys())
@@ -139,18 +139,19 @@ def extractLoggerInfo(sourceCode):
                                 if moduleName in clNames:
                                     decoratorName = f"{moduleName}.{decorator.func.attr}"
 
-                        if decoratorName and (
-                                decoratorName in clNames or
-                                decoratorName.split('.')[0] in clNames
-                        ):
-                            if decorator.args and len(decorator.args) > 0:
-                                arg = decorator.args[0]
-                                if isinstance(arg, ast.Name):
-                                    loggerName = arg.id
-                                    decoratedFunctions.add(node.name)
+                        if not decoratorName:
+                            continue
+                        if decoratorName not in clNames and decoratorName.split('.')[0] not in clNames:
+                            continue
+
+                        if decorator.args and len(decorator.args) > 0:
+                            arg = decorator.args[0]
+                            if isinstance(arg, ast.Name):
+                                loggerName = arg.id
+                                decoratedFunctions.add(node.name)
 
         return loggerName, decoratedFunctions
-    except Exception as e:
+    except Exception:
         return None, set()
 
 
@@ -188,7 +189,7 @@ def injectLogging(infilepath, outfilepath):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 for i in range(node.lineno, node.end_lineno + 1 if node.end_lineno else node.lineno + 1):
                     lineToFunction[i] = node.name
-    except:
+    except Exception:
         lineToFunction = {}
 
     for i, line in enumerate(lines):
