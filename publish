@@ -2,7 +2,7 @@ PROJ=commentlogger
 rm -rf src build dist
 mkdir -p src/"$PROJ"
 
-for fname in __init__.py commentlogger.py ; do
+for fname in __init__.py commentlogger.py prod.py README.md LICENSE; do
     cp "$fname" src/"$PROJ"/
 done
 
