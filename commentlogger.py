@@ -45,12 +45,11 @@ def logcomments(myLogger):
                         logline = logline.strip()
 
                         if not level:
-                        # if not(level and level.upper() in LOGLEVELS):
                             level = "info"
                             logline = comment
 
                         try:
-                            level = next(l for l in LOGLEVELS if l.startswith(level.upper()))
+                            level = next(L for L in LOGLEVELS if L.startswith(level.upper()))
                         except StopIteration:
                             level = "info"
                             logline = comment
@@ -88,4 +87,4 @@ def logcomments(myLogger):
     return decoDebug
 
 
-logComments = log_comments = logcomments  # supporting whatever code style a dev might want
+logComments = log_comments = logcomments  # supporting whatever code style a dev might want  # noqa N816
