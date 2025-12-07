@@ -123,9 +123,13 @@ from commentlogger import log_comments # snake_case alternative
 commentlogger uses Python's `sys.settrace()` mechanism to intercept line-by-line execution. When a decorated function runs:
 
 1. The decorator extracts all comments from the function's source code
-2. As each line executes, it checks if that line has a comment
-3. If a comment exists, it logs the comment text before executing the line
-4. Execution continues normally
+1. As each line executes, it checks if that line has a comment
+1. If a comment exists, it logs the comment text before executing the line
+1. If the comment specifies a log level, use that loglevel  
+   Eg: `# warning: [message]` will log `message` as a warning. This will work only if `setLevel` allows for warnings to be emitted.  
+   Shorthand also works: `# w: [message]` or `# warn: [message]` or `# wa: [message]` will behave identically.  
+   Caveat: if two loglevels share a shorthand/prefix, the lexicographically first level will be used.
+1. Execution continues normally
 
 ## Performance Considerations
 

@@ -5,7 +5,7 @@ import sys
 from functools import wraps
 
 
-LOGLEVELS = logging._nameToLevel
+LOGLEVELS = sorted(logging._nameToLevel.keys())
 
 
 def logcomments(myLogger):
@@ -44,7 +44,14 @@ def logcomments(myLogger):
                         level = level.strip()
                         logline = logline.strip()
 
-                        if not(level and level.upper() in LOGLEVELS):
+                        if not level:
+                        # if not(level and level.upper() in LOGLEVELS):
+                            level = "info"
+                            logline = comment
+
+                        try:
+                            level = next(l for l in LOGLEVELS if l.startswith(level.upper()))
+                        except StopIteration:
                             level = "info"
                             logline = comment
 
