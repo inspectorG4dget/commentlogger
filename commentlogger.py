@@ -48,17 +48,18 @@ def logcomments(myLogger):
                             level = "info"
                             logline = comment
 
-                        try:
-                            level = next(L for L in LOGLEVELS if L.startswith(level.upper()))
-                        except StopIteration:
-                            level = "info"
-                            logline = comment
+                        else:
+                            try:
+                                level = next(L for L in LOGLEVELS if L.startswith(level.upper()))
+                            except StopIteration:
+                                level = "INFO"
+                                logline = comment
 
                         comment_lines[line_num] = logline
 
                         if myLogger.isEnabledFor(getattr(logging, level.upper())):
                             record = myLogger.makeRecord(myLogger.name,
-                                                         logging.INFO,
+                                                         getattr(logging, level),
                                                          func_filename,  # filename of the logging function
                                                          line_num,
                                                          comment_lines[line_num],
