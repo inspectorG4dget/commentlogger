@@ -21,17 +21,22 @@ def getArgs():
     args = argparse.ArgumentParser()
     args.add_argument('-i', dest='infilepath', type=str, required=True, help='input filepath')
     args.add_argument('-o', dest='outfilepath', type=str, required=True, help='output filepath')
+    args.add_argument('-s', dest='stopwords', type=str, nargs="+", required=False, help='stopwords')
 
     return args.parse_args()
 
 
-def parseComment(comment):
+def parseComment(comment, stopwords=None):
     """
     Parse a comment to extract log level and message.
 
     :param comment: The comment text to parse
+    :param stopwords: A list of stopwords to ignore if the comment starts with any of the stopwords
     :returns: A tuple of (logLevel, logMessage)
     """
+    if not stopwords:
+        stopwords = []
+
     level, _, logline = comment.partition(":")
     level = level.strip()
     logline = logline.strip()
@@ -46,6 +51,9 @@ def parseComment(comment):
             level = "INFO"
             logline = comment
 
+    if any(logline.startswith(stopword) for stopword in stopwords):
+        logline = ''
+
     return level, logline
 
 
@@ -56,7 +64,6 @@ def shouldSkipDecoratorLine(line, sourceCode):
 
     :param line: The line of code to check
     :param sourceCode: The full source code (needed to parse imports)
-
     :return: True if this decorator should be skipped, False otherwise
     """
 
@@ -155,12 +162,13 @@ def extractLoggerInfo(sourceCode):
         return None, set()
 
 
-def injectLogging(infilepath, outfilepath):
+def injectLogging(infilepath, outfilepath, stopwords):
     """
     Inject logging statements before lines with comments in a Python file.
 
     :param infilepath: str. Path to the input Python file
     :param outfilepath: str. Path to the output file
+    :param stopwords: list of str. List of stopwords to ignore
 
     :returns: None
     """
@@ -216,7 +224,9 @@ def injectLogging(infilepath, outfilepath):
             currFunc = lineToFunction.get(i + 1)
 
             if (preCommentCode and currFunc in decoratedFunctions and '@' not in preCommentCode):
-                logLevel, logMessage = parseComment(commentText)  # Parse comment to extract log level and message
+                logLevel, logMessage = parseComment(commentText, stopwords)  # Parse comment to extract log level and message
+                if not logMessage:
+                    continue
 
                 logStatement = f'{indent}{loggerName}.{logLevel.lower()}("{logMessage}")'
                 newLines.append(logStatement)
@@ -231,6 +241,6 @@ if __name__ == "__main__":
     print('starting')  # noqa T201
 
     args = getArgs()
-    injectLogging(args.infilepath, args.outfilepath)
+    injectLogging(args.infilepath, args.outfilepath, args.stopwords)
 
     print('done')  # noqa T201
