@@ -4,6 +4,8 @@ import re
 import sys
 from functools import wraps
 
+import utils
+
 
 LOGLEVELS = {**logging._nameToLevel}
 
@@ -28,7 +30,9 @@ def logcomments(myLogger, stopwords=None):
         for i, line in enumerate(sourceLines):
             match = re.search(r'#\s*(.*)', line)
             if match:
-                commentLines[startLine + i] = match.group(1).strip()
+                comment = utils.extractComment(line)
+                if comment:
+                    commentLines[startLine + i] = comment
 
         funcCode = func.__code__
         funcFilename = funcCode.co_filename

@@ -3,6 +3,8 @@ import ast
 import logging
 import re
 
+import utils
+
 # Get all available log levels
 LOGLEVELS = {**logging._nameToLevel}
 
@@ -173,14 +175,12 @@ def injectLogging(infilepath, outfilepath, stopwords):
     :returns: None
     """
 
-    with open(infilepath, 'r') as f:
-        sourceCode = f.read()
+    with open(infilepath) as infile:
+        sourceCode = infile.read()
 
-    detectedLogger, decoratedFunctions = extractLoggerInfo(sourceCode)
+    loggerName, decoratedFunctions = extractLoggerInfo(sourceCode)
 
-    if detectedLogger:
-        loggerName = detectedLogger
-    else:
+    if not loggerName:
         loggerName = "logger"
 
     lines = sourceCode.splitlines()
@@ -189,23 +189,68 @@ def injectLogging(infilepath, outfilepath, stopwords):
     importsLogging = 'import logging' in sourceCode
     addedImports = False
 
+    # map line numbers to function names and statement boundaries
     try:
         tree = ast.parse(sourceCode)
         lineToFunction = {}
+        statementLines = set()  # Lines that start a new statement
 
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 for i in range(node.lineno, node.end_lineno + 1 if node.end_lineno else node.lineno + 1):
                     lineToFunction[i] = node.name
+
+        # Mark all lines that are the start of a statement
+        for node in ast.walk(tree):
+            if isinstance(node, ast.stmt):
+                statementLines.add(node.lineno)
+            # Also check for standalone expressions that are statements
+            elif isinstance(node, ast.Expr) and hasattr(node, 'lineno'):
+                statementLines.add(node.lineno)
+
     except Exception:
         lineToFunction = {}
+        statementLines = set()
 
-    for i, line in enumerate(lines):
+    # Build map of which lines have comments and should have logging injected
+    linesToInject = {}  # {line_number : (indent, log_level, log_message)}
 
+    for i, line in enumerate(lines, start=1):
+        commentText = utils.extractComment(line)
+        if not commentText:
+            continue
+
+        codeBeforeComment = line.split('#')[0].strip()  # check if there's actual code before the comment
+
+        currFunc = lineToFunction.get(i)
+        if currFunc not in decoratedFunctions:
+            continue
+
+        # for lines with code, check if it's a statement start (not continuation). Always allow comment-only lines
+        if codeBeforeComment:
+            if '@' in codeBeforeComment:  # it's a decorator line
+                continue
+
+            if i not in statementLines:  # does this line start a statement?
+                continue
+
+        logLevel, logMessage = parseComment(commentText, stopwords)
+        if not logMessage:
+            continue
+
+        indentMatch = re.match(r'^(\s*)', line)
+        indent = indentMatch.group(1) if indentMatch else ''
+
+        linesToInject[i] = (indent, logLevel, logMessage)
+
+    # Now build the output, injecting logging statements
+    for i, line in enumerate(lines, start=1):
+
+        # Add import if needed
         if not addedImports and not importsLogging:
             stripped = line.strip()
             starts = ("#", "'''", '"""')
-            if i and stripped and not any(stripped.startswith(s) for s in starts):
+            if i > 1 and stripped and not any(stripped.startswith(s) for s in starts):
                 newLines.append('import logging')
                 newLines.append('')
                 addedImports = True
@@ -213,28 +258,16 @@ def injectLogging(infilepath, outfilepath, stopwords):
         if shouldSkipDecoratorLine(line, sourceCode):
             continue
 
-        commentMatch = re.search(r'#\s*(.*)', line)
-
-        if commentMatch:
-            commentText = commentMatch.group(1).strip()
-            indentTatch = re.match(r'^(\s*)', line)
-            indent = indentTatch.group(1) if indentTatch else ''
-
-            preCommentCode = line.split('#')[0].strip()
-            currFunc = lineToFunction.get(i + 1)
-
-            if (preCommentCode and currFunc in decoratedFunctions and '@' not in preCommentCode):
-                logLevel, logMessage = parseComment(commentText, stopwords)  # Parse comment to extract log level and message
-                if not logMessage:
-                    continue
-
-                logStatement = f'{indent}{loggerName}.{logLevel.lower()}("{logMessage}")'
-                newLines.append(logStatement)
+        # Inject logging as needed
+        if i in linesToInject:
+            indent, logLevel, logMessage = linesToInject[i]
+            logStatement = f'{indent}{loggerName}.{logLevel.lower()}("{logMessage}")'
+            newLines.append(logStatement)
 
         newLines.append(line)
 
-    with open(outfilepath, 'w') as f:
-        f.write('\n'.join(newLines))
+    with open(outfilepath, 'w') as outfile:
+        outfile.write('\n'.join(newLines))
 
 
 if __name__ == "__main__":
