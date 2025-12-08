@@ -17,6 +17,7 @@ LOGLEVELS = sorted(LOGLEVELS.keys())
 def logcomments(myLogger, stopwords=None):
     if stopwords is None:
         stopwords = []
+
     def decoDebug(func):
         """Development decorator that traces comment execution."""
         source = inspect.getsource(func)
