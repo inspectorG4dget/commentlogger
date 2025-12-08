@@ -26,6 +26,7 @@ Writing logging statements while developing can make code harder to read and und
 - 🔍 **Line-by-line execution tracing** - See exactly what's running and when
 - 🎨 **Flexible logger support** - Use your own logger or the default
 - 📊 **Log level support** - Specify log levels directly in comments (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- 🚫 Stopword filtering - Comments starting with certain user-specified keywords (like TODO, FIXME, NOTE, HACK, XXX, BUG) are automatically skipped and won't be logged
 - 🚀 **Development-focused** - Designed for debugging, not production (see Performance note)
 - 📝 **Clean syntax** - Simple decorator, nothing more
 - 🔄 **Production converter** - Tool to convert development code to production-ready logging
@@ -144,7 +145,36 @@ WARNING: High value transaction detected
 INFO: This is a regular info message
 ```
 
-**Supported log levels:**
+### Stopword Filtering
+You can specify stopwords to prevent certain comments from being logged:
+```python
+import logging
+from commentlogger import logcomments
+
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+logger = logging.getLogger(__name__)
+
+@logcomments(logger, stopwords=['TODO', 'FIXME', 'NOTE'])
+def process_data(data):
+    # TODO: optimize this algorithm later
+    validated = validate(data)
+    
+    # Processing data now
+    result = transform(validated)
+    
+    # FIXME: handle edge case for empty lists
+    if result:
+        return result[0]
+    
+    # NOTE: this is a temporary workaround
+    return None
+```
+
+Only comments that don't start with a stopword prefix is logged. Comments starting with TODO, FIXME, or NOTE are silently skipped.
+
+**Supported log levels:**  
+These are the default log levels in python's logging module.
+If you'd like additional/custom log levels, ensure you add them before you pass the logger to the `logcomments` decorator
 - `DEBUG` (or `D`, `DEB`, `DEBU`, `debu`)
 - `INFO` (or `I`, `INF`, `inf`)
 - `WARNING` (or `W`, `WARN`, `WA`, `wa`)
