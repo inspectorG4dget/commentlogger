@@ -14,7 +14,9 @@ for k, v in logging._nameToLevel.items():
 LOGLEVELS = sorted(LOGLEVELS.keys())
 
 
-def logcomments(myLogger):
+def logcomments(myLogger, stopwords=None):
+    if stopwords is None:
+        stopwords = []
     def decoDebug(func):
         """Development decorator that traces comment execution."""
         source = inspect.getsource(func)
@@ -41,26 +43,29 @@ def logcomments(myLogger):
                 if event == 'call':
                     return traceLines
 
-                if event == 'line':
-                    lineNum = frame.f_lineno
+                if event != 'line':
+                    return traceLines
 
-                    if lineNum in commentLines and lineNum not in loggedLines:
-                        comment = commentLines[lineNum]
-                        level, _, logline = comment.partition(":")
-                        level = level.strip()
-                        logline = logline.strip()
+                lineNum = frame.f_lineno
 
-                        if not level:
-                            level = "info"
+                if lineNum in commentLines and lineNum not in loggedLines:
+                    comment = commentLines[lineNum]
+                    level, _, logline = comment.partition(":")
+                    level = level.strip()
+                    logline = logline.strip()
+
+                    if not level:
+                        level = "info"
+                        logline = comment
+
+                    else:
+                        try:
+                            level = next(L for L in LOGLEVELS if L.startswith(level.upper()))
+                        except StopIteration:
+                            level = "INFO"
                             logline = comment
 
-                        else:
-                            try:
-                                level = next(L for L in LOGLEVELS if L.startswith(level.upper()))
-                            except StopIteration:
-                                level = "INFO"
-                                logline = comment
-
+                    if not any(logline.startswith(stopword) for stopword in stopwords):
                         commentLines[lineNum] = logline
 
                         if myLogger.isEnabledFor(getattr(logging, level.upper())):
