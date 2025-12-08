@@ -211,7 +211,7 @@ Just remove `@logcomments(logger)` from your functions.
 Use the included `inject_logging.py` tool to automatically convert your commented code to production-ready logging:
 
 ```bash
-python prod.py -i mycode.py -o mycode_production.py
+python -m commentlogger.prod -i mycode.py -o mycode_production.py -s FIXME DEBUG
 ```
 
 **Input code:**
