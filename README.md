@@ -81,9 +81,7 @@ Notice that `bar()` doesn't produce any log output because it's not decorated.
 
 Like this project?
 
-[![](https://storage.ko-fi.com/cdn/brandasset/v2/support_me_on_kofi_badge_dark.png)](https://ko-fi.com/inspectorg4dget)
-
-![Support me!](https://storage.ko-fi.com/cdn/brandasset/v2/support_me_on_kofi_badge_dark.png)
+[![Support me!](https://storage.ko-fi.com/cdn/brandasset/v2/support_me_on_kofi_badge_dark.png)](https://ko-fi.com/inspectorg4dget)
 
 ---
 
