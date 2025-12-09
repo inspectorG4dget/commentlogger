@@ -77,6 +77,22 @@ done
 
 Notice that `bar()` doesn't produce any log output because it's not decorated.
 
+---
+
+Like this project?
+
+<script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
+<script>
+  kofiWidgetOverlay.draw('inspectorg4dget', {
+    'type': 'floating-chat',
+    'floating-chat.donateButton.text': 'Support Me',
+    'floating-chat.donateButton.background-color': '#00b9fe',
+    'floating-chat.donateButton.text-color': '#fff'
+  });
+</script>
+
+---
+
 ## Usage
 
 ### Basic Usage
