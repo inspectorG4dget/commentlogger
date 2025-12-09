@@ -81,7 +81,7 @@ Notice that `bar()` doesn't produce any log output because it's not decorated.
 
 Like this project?
 
-<a href="https://ko-fi.com/inspectorg4dget"><img src="https://storage.ko-fi.com/cdn/brandasset/v2/support_me_on_kofi_badge_dark.png" height="100"> Support me! </img></a>
+<a href="https://ko-fi.com/inspectorg4dget"><img src="https://storage.ko-fi.com/cdn/brandasset/v2/support_me_on_kofi_badge_dark.png" height="100"></a>
 
 ---
 
